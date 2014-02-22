@@ -236,7 +236,7 @@
         // Replace the YEAR placeholder with the current year
         var $heading = $('textarea[name="kml-heading"]')
         var year = ""+ (new Date().getFullYear());
-        var heading = $heading.val().replace("-YEAR-", year, 'g');
+        var heading = $heading.val().replace(/-YEAR-/g, year);
         $heading.val( heading );
         });
     </script>
