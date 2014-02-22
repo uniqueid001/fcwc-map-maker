@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html>
+    <!--
+    TODO:
+        * move the range to the document; extract values from the input
+            fields
+        * don't include the KML document closing unless actually processing
+            the last sites
+        * add warnings about multiple results to the document
+        * refactor the code
+    -->
+<head>
+    <meta charset="UTF-8" />
+    <title>Geocoder tool to creating maps for FCWC </title>
+
+    <link href="https://google-developers.appspot.com/maps/documentation/javascript/examples/default.css" rel="stylesheet" type="text/css" />
+
+    <style type="text/css">
+        body
+            {
+            padding-left: 2em;
+            padding-right: 2em;
+            }
+    </style>
+
+    <script type="application/javascript"
+            src="http://code.jquery.com/jquery-1.9.1.js"
+            >
+    </script>
+
+    <script type="application/javascript"
+            src="https://maps.googleapis.com/maps/api/js?sensor=false"></script>
+
+    <script type="application/javascript">
+    var geocoder;
+    var map;
+    function initialize()
+        {
+        //'use strict';
+        geocoder = new google.maps.Geocoder();
+
+        var latlng = new google.maps.LatLng(43.16103, -77.6109219);
+        var mapOptions = {
+            zoom: 11,
+            center: latlng,
+            mapTypeId: google.maps.MapTypeId.ROADMAP
+            };
+        var map_canvas = document.getElementById("map_canvas");
+        if (map_canvas === null)
+            {
+            console.log("Error: failed to find map_canvas element in document!");
+            }
+        map = new google.maps.Map(map_canvas, mapOptions);
+        }
+
+    function codeAddress()
+        {
+        'use strict';
+        var address = document.getElementById("address").value;
+        geocoder.geocode( {'address': address},
+            function(results, status)
+                {
+                'use strict';
+                if (status == google.maps.GeocoderStatus.OK)
+                    {
+                    //map.setCenter(results[0].geometry.location);
+                    //var marker = new google.maps.Marker({
+                    //    map: map, 
+                    //    position: results[0].geometry.location
+                    //});
+                    console.log("Position: "+results[0].geometry.location);
+                    document.getElementById("points").innerText +=
+                                ("\nPosition: "+results[0].geometry.location);
+                    }
+                else
+                    {
+                    alert("Geocode was not successful for the following reason: " + status);
+                    }
+                });
+        } // codeAddress()
+    </script>
+
+
+
+    <script type="application/javascript">
+    function processSiteList()
+        {
+        'use strict';
+        var sitelist_text = document.getElementById("site-list").value;
+        console.log("Site List:", sitelist_text);
+
+        document.getElementById("kml-output").value = '';
+        /*
+        document.getElementById("kml-output").value =
+            document.getElementById("kml-heading").value;
+        */
+
+        var sitelist = sitelist_text.split("\n");
+        console.log("sitelist: ", sitelist);
+
+        processSiteSpec(0, sitelist);
+
+//        for (index in sitelist)
+//            {
+//            processSiteSpec(index, sitelist);
+//            }
+         } // processSiteList()
+
+    function processSiteSpec(index, sitelist)
+        {
+        'use strict';
+        // stop the process at the end
+        if (index >= sitelist.length)
+            {
+            // finish the close tags for the document
+//            document.getElementById('kml-output').value +=
+//                        '\n</Document>\n</kml>\n';
+            return;
+            }
+
+        var sitespec = sitelist[index];
+        console.log(""+index+": "+sitespec);
+        // skip blank lines
+        if (sitespec == undefined || sitespec.trim() == '')
+            {
+            //continue;
+            processSiteSpec(index+1, sitelist);
+            return;
+            }
+        var attrs = sitespec.split("|", 3);
+
+        var camp_code = attrs[0].trim();
+        var sitenum = attrs[1].trim();
+        var address = attrs[2].trim();
+        console.log(""+index+"*  ", camp_code, sitenum, address);
+
+        var camp = undefined;
+        if (camp_code == 'W')
+            { camp = 'west'; }
+        if (camp_code == 'E')
+            { camp = 'east'; }
+
+        // Only process 10 at a time because that is the limit without
+        // an API key
+        var start_index = $('input[name="start-index"]:checked').val();
+        start_index = parseInt(start_index);
+        var end_index = start_index + 10;
+        //if (! (0 <= index && index < 10) )
+        //if (! (10 <= index && index < 20) )
+        //if (! (20 <= index && index < 30) )
+        //if (! (30 <= index && index < 40) )
+        //if (! (40 <= index && index < 50) )
+        //if (! (50 <= index && index < 60) )
+        //if (! (60 <= index && index < 70) )
+        console.debug("Start index:", start_index, "End index:", end_index);
+        if (! (start_index <= index && index < end_index) )
+            {
+            //continue;
+            console.log("Skipping entry not in range:", index);
+            processSiteSpec(index+1, sitelist);
+            return;
+            }
+
+        createMarker(camp, sitenum, address, index+1, sitelist);
+        } // processSiteSpec()
+    </script>
+
+    <script type="application/javascript">
+    function createMarker(camp, sitenum, address, index, sitelist)
+        {
+        // sw, ne corners of area to search
+        var LeRoy = google.maps.LatLng(42.979535,-77.99057);
+        var NE = google.maps.LatLng(43.335167,-77.257233);
+        var search = address;
+        if (address.indexOf("NY") == -1)
+            { search += " Rochester, NY"; }
+        geocoder.geocode(
+                {'address': search,
+                    // sw, ne corners of area to search
+                'bounds': google.maps.LatLngBounds( LeRoy, NE ),
+                },
+            function(results, status)
+                {
+                if (status == google.maps.GeocoderStatus.OK)
+                    {
+                    var location = results[0].geometry.location;
+
+                    console.log("#"+sitenum+" Position: "+location);
+                    document.getElementById("points").innerText +=
+                        ("\n"+
+                         camp+" - #"+sitenum+": "+address+"  -> "+location);
+
+                    //document.getElementById("kml-output").value +=
+                    //    ("\n"+
+                    //     camp+" - #"+sitenum+": "+address+"  -> "+location);
+
+                    var template = document.getElementById('placemark-template').value;
+                    var text = template.replace(/\{sitenum\}/g, sitenum)
+                                       .replace(/\{address\}/g, address)
+                                       .replace(/\{lat\}/g, location.lat())
+                                       .replace(/\{long\}/g, location.lng())
+                                       .replace('{camp}', camp)
+                                       ;
+                    document.getElementById("kml-output").value += text;
+
+                    //var template = $('#placemark-template').value;
+                    //var text = $(template).format(
+
+                    var marker = new google.maps.Marker({
+                        map: map,
+                        position: location,
+                        icon: 
+                            camp == 'east'
+                                ?  "https://maps-api-ssl.google.com/intl/en_us/mapfiles/ms/micons/lightblue.png"
+                                : "https://maps-api-ssl.google.com/intl/en_us/mapfiles/ms/micons/green.png"
+                        });
+
+                    // process the next site in the list
+                    processSiteSpec(index, sitelist);
+                    }
+                else
+                    {
+                    alert("Geocode was not successful for the following reason: " + status);
+                    }
+                });
+        } // createMarker()
+
+    //$(document).ready( initialize() );
+    </script>
+
+    <script src="http://code.jquery.com/jquery-2.1.0.js"></script>
+
+    <script type="application/javascript">
+    $(document).ready( function()
+        {
+        // Replace the YEAR placeholder with the current year
+        var $heading = $('textarea[name="kml-heading"]')
+        var year = ""+ (new Date().getFullYear());
+        var heading = $heading.val().replace("-YEAR-", year, 'g');
+        $heading.val( heading );
+        });
+    </script>
+</head>
+
+<body onload="initialize()">
+
+    <h2 style="text-align:center">
+        FCWC Map Creator
+    </h2>
+
+    <i>Instructions for use:  Update the year in the heading template.  Replace the contents of the &lt;textarea&gt; with the new address data.  Adjust the comments for the range of the site list to process. Copy the KML heading to the destination file.  Click the button labeled "Geocode", and copy the produced section of KML to the destination file.  Repeat for each section of the site list.  Finally, import the complete KML to a new Google Maps.
+    </i>
+
+    <form action="javascript:processSiteList();">
+        <div style="display:inline-block; width:49%; vertical-align:top;">
+            Site List: <br>
+            <textarea id="site-list" style="width:50%;" rows="15">
+E | 1 | 28 Walbert Dr
+E | 2 | 637 Portland Ave
+E | 3 | 52 Bismark
+E | 4 | 527 Woodbine Ave
+E | 5 | 278 Breck St
+E | 6 | 60 Moulson St
+E | 7 | 132 Grand Ave
+E | 8 | 6 Laser St
+E | 9 | 58 Thomas St
+E | 10 | 66 Fairbank St
+E | 11 | 211 Seward St
+E | 12 | 1762 Clifford Ave
+E | 13 | 87 Tuliptree Lane
+E | 14 | 32 McKinster St
+E | 15 | 59 Van Stallen St
+E | 16 | 99 Woodward
+E | 17 | 127 Lake Breeze Park
+E | 18 | 375 Melville St
+E | 19 | 1140 Norton
+E | 20 | 1036 Joseph Ave
+E | 21 | 107 Manchester
+E | 22 | 340 Garson Ave
+E | 23 | 34 Trenaman St
+E | 24 | 357 Chili Ave
+E | 25 | 73 Ave D
+E | 26 | 161 Cady St
+E | 27 | 302 Ave B
+E | 28 | 621 Woodward
+E | 29 | 64 Miller St
+E | 30 | 50 Townsend St
+E | 31 | 66 Miller St
+E | 32 | 6 Herbert St
+E | 33 | 163 Fifth St
+W | 34 | 411 Frost
+W | 35 | 40 Morningstar Dr
+W | 36 | 586 Thurston Rd
+W | 37 | 251/249  Hazelwood Terrace
+W | 38 | 829 Seward
+W | 39 | 542 Arnett Blvd
+W | 40 | 48 Bergen St
+W | 41 | 100 Flint St
+W | 42 | 6 Meridian St
+W | 43 | 59 Lenox
+W | 44 | 108 Samuel McCree Way
+W | 45 | 285 Ferncliffe
+W | 46 | 189 Garfield
+W | 47 | 137 Rugby Ave
+W | 48 | 69 Cady St
+W | 49 | 15 Champeny Terrace
+W | 50 | 569 Flint St
+W | 51 | 29 Violetta St
+W | 52 | 343 Roycroft
+W | 53 | 53 Cutler St
+W | 54 | 93 Dorbeth
+W | 55 | 95 Brayer St
+W | 56 | 209 Orange St
+W | 57 | 340 Elliot St
+W | 58 | 55 Lenox
+            </textarea>
+        </div>
+
+        <div style="display:inline-block; width:49%;">
+        Result: <br>
+        <textarea id="kml-output" style="width:100%;" rows="15">
+        </textarea>
+        <!--
+&lt;?xml version="1.0" encoding="UTF-8"?&gt;
+&lt;kml xmlns="http://www.opengis.net/kml/2.2"&gt;
+&lt;Document&gt;
+  &lt;name&gt;FCWC 2012&lt;/name&gt;
+  &lt;description&gt;&lt;![CDATA[Home base and worksite locations for Flower City Work Camp 2012 (Both West and East Camp)]]&gt;&lt;/description&gt;
+  &lt;Style id="home-base"&gt;
+    &lt;IconStyle&gt;
+      &lt;Icon&gt;
+        &lt;href&gt;http://maps.gstatic.com/intl/en_us/mapfiles/ms/micons/pink-pushpin.png&lt;/href&gt;
+      &lt;/Icon&gt;
+    &lt;/IconStyle&gt;
+  &lt;/Style&gt;
+  &lt;Style id="east-camp-worksite"&gt;
+    &lt;IconStyle&gt;
+      &lt;Icon&gt;
+        &lt;href&gt;https://maps-api-ssl.google.com/intl/en_us/mapfiles/ms/micons/lightblue.png&lt;/href&gt;
+      &lt;/Icon&gt;
+    &lt;/IconStyle&gt;
+  &lt;/Style&gt;
+  &lt;Style id="west-camp-worksite"&gt;
+    &lt;IconStyle&gt;
+      &lt;Icon&gt;
+        &lt;href&gt;https://maps-api-ssl.google.com/intl/en_us/mapfiles/ms/micons/green.png&lt;/href&gt;
+      &lt;/Icon&gt;
+    &lt;/IconStyle&gt;
+  &lt;/Style&gt;
+
+  &lt;Placemark&gt;
+    &lt;name&gt;Home Base (West Camp)&lt;/name&gt;
+    &lt;Snippet&gt;Hope Lutheran Church&lt;/Snippet&gt;
+    &lt;description&gt;&lt;![CDATA[&lt;div dir="ltr"&gt;Hope Lutheran Church&lt;/div&gt;]]&gt;&lt;/description&gt;
+    &lt;styleUrl&gt;#home-base&lt;/styleUrl&gt;
+    &lt;Point&gt;
+      &lt;coordinates&gt;-77.692383,43.230206,0.000000&lt;/coordinates&gt;
+    &lt;/Point&gt;
+  &lt;/Placemark&gt;
+  &lt;Placemark&gt;
+    &lt;name&gt;Home Base (East Camp)&lt;/name&gt;
+    &lt;Snippet&gt;Browncroft Community Church&lt;/Snippet&gt;
+    &lt;description&gt;&lt;![CDATA[&lt;div dir="ltr"&gt;Browncroft Community Church&lt;/div&gt;&lt;img src="http://cbk0.google.com/cbk?output=thumbnail&amp;amp;w=90&amp;amp;h=68&amp;amp;ll=43.153853,-77.500906&amp;amp;thumb=0"&gt;]]&gt;&lt;/description&gt;
+    &lt;styleUrl&gt;#home-base&lt;/styleUrl&gt;
+    &lt;Point&gt;
+      &lt;coordinates&gt;-77.500908,43.153854,0.000000&lt;/coordinates&gt;
+    &lt;/Point&gt;
+  &lt;/Placemark&gt;
+        </textarea>
+        -->
+
+        </div>
+
+        <div style="align:center;text-align:center;">
+            Starting index:
+            |<label><input type="radio" name="start-index" value="0" checked>  0 </label>
+            |<label><input type="radio" name="start-index" value="10"> 10 </label>
+            |<label><input type="radio" name="start-index" value="20"> 20 </label>
+            |<label><input type="radio" name="start-index" value="30"> 30 </label>
+            |<label><input type="radio" name="start-index" value="40"> 40 </label>
+            |<label><input type="radio" name="start-index" value="50"> 50 </label>
+            |<label><input type="radio" name="start-index" value="60"> 60 </label>
+            |<label><input type="radio" name="start-index" value="70"> 70 </label>
+            |<input type="submit" value="Geocode"/>
+            <!--
+            <button type="button" id="geocode-list">Geocode</button>
+            -->
+        </div>
+
+    </form>
+
+    <hr />
+
+    <div>
+        <form action="javascript:codeAddress();">
+            <input id="address" type="textbox" value="Rochester, NY">
+            <input type="submit" value="Geocode" />
+        </form>
+    </div>
+
+    <div>
+        <p id="points"> </p>
+    </div>
+
+    <div id="map_canvas" style="height:90%;top:30px"></div>
+
+    <hr />
+
+    <div style="margin-top:2em; ">
+        <div style="display:inline-block; width:45%; vertical-align:top;">
+            KML file "heading": <br>
+            <textarea name="kml-heading" style="width:100%;" rows="15">
+&lt;?xml version="1.0" encoding="UTF-8"?&gt;
+&lt;kml xmlns="http://earth.google.com/kml/2.2"&gt;
+&lt;Document&gt;
+  &lt;name&gt;FCWC -YEAR-&lt;/name&gt;
+  &lt;description&gt;&lt;![CDATA[Home base and worksite locations for Flower City Work Camp -YEAR- (Both West and East Camp)]]&gt;&lt;/description&gt;
+  &lt;Style id="home-base"&gt;
+    &lt;IconStyle&gt;
+      &lt;Icon&gt;
+        &lt;href&gt;https://maps.gstatic.com/intl/en_us/mapfiles/ms/micons/pink-pushpin.png&lt;/href&gt;
+      &lt;/Icon&gt;
+    &lt;/IconStyle&gt;
+  &lt;/Style&gt;
+  &lt;Style id="east-camp-worksite"&gt;
+    &lt;IconStyle&gt;
+      &lt;Icon&gt;
+        &lt;href&gt;https://maps.gstatic.com/intl/en_us/mapfiles/ms/micons/lightblue.png&lt;/href&gt;
+      &lt;/Icon&gt;
+    &lt;/IconStyle&gt;
+  &lt;/Style&gt;
+  &lt;Style id="west-camp-worksite"&gt;
+    &lt;IconStyle&gt;
+      &lt;Icon&gt;
+        &lt;href&gt;https://maps.gstatic.com/intl/en_us/mapfiles/ms/micons/green.png&lt;/href&gt;
+      &lt;/Icon&gt;
+    &lt;/IconStyle&gt;
+  &lt;/Style&gt;
+
+  &lt;Placemark&gt;
+    &lt;name&gt;Home Base (West Camp)&lt;/name&gt;
+    &lt;Snippet&gt;Hope Lutheran Church&lt;/Snippet&gt;
+    &lt;description&gt;&lt;![CDATA[&lt;div dir="ltr"&gt;Hope Lutheran Church&lt;/div&gt;]]&gt;&lt;/description&gt;
+    &lt;styleUrl&gt;#home-base&lt;/styleUrl&gt;
+    &lt;Point&gt;
+      &lt;coordinates&gt;-77.692383,43.230206,0.000000&lt;/coordinates&gt;
+    &lt;/Point&gt;
+  &lt;/Placemark&gt;
+  &lt;Placemark&gt;
+    &lt;name&gt;Home Base (East Camp)&lt;/name&gt;
+    &lt;Snippet&gt;Browncroft Community Church&lt;/Snippet&gt;
+    &lt;description&gt;&lt;![CDATA[&lt;div dir="ltr"&gt;Browncroft Community Church&lt;/div&gt;&lt;img src="http://cbk0.google.com/cbk?output=thumbnail&amp;amp;w=90&amp;amp;h=68&amp;amp;ll=43.153853,-77.500906&amp;amp;thumb=0"&gt;]]&gt;&lt;/description&gt;
+    &lt;styleUrl&gt;#home-base&lt;/styleUrl&gt;
+    &lt;Point&gt;
+      &lt;coordinates&gt;-77.500908,43.153854,0.000000&lt;/coordinates&gt;
+    &lt;/Point&gt;
+  &lt;/Placemark&gt;
+
+
+</textarea>
+
+            <br>
+            KML file "footer": <br>
+            <textarea name="kml-footer" style="width:100%;" rows="3">
+&lt;/Document&gt;
+&lt;/kml&gt;
+</textarea>
+
+        </div>
+
+
+        <div style="display:inline-block; width:49%; margin-left:3em;">
+            Placemark Template: <br>
+            <textarea id="placemark-template" style="width:100%;" rows="15">
+  &lt;Placemark id="site {sitenum}"&gt;
+    &lt;name&gt;#{sitenum}:  {address}&lt;/name&gt;
+    &lt;Snippet&gt;Site {sitenum}: {address}&lt;/Snippet&gt;
+    &lt;description&gt;&lt;![CDATA[{address}&lt;br&gt;Rochester, NY
+    &lt;br&gt;&lt;img src="http://cbk0.google.com/cbk?output=thumbnail&amp;amp;w=90&amp;amp;h=68&amp;amp;ll={lat},{long}&amp;amp;thumb=0"&gt;]]&gt;&lt;/description&gt;
+    &lt;styleUrl&gt;#{camp}-camp-worksite&lt;/styleUrl&gt;
+    &lt;Point&gt;
+      &lt;coordinates&gt;{long},{lat},0.000000&lt;/coordinates&gt;
+    &lt;/Point&gt;
+  &lt;/Placemark&gt;
+
+</textarea>
+        </div>
+    </div>
+
+</body>
+</html>
