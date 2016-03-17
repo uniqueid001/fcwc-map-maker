@@ -89,21 +89,12 @@
         console.log("Site List:", sitelist_text);
 
         document.getElementById("kml-output").value = '';
-        /*
-        document.getElementById("kml-output").value =
-            document.getElementById("kml-heading").value;
-        */
 
         var sitelist = sitelist_text.split("\n");
         console.log("sitelist: ", sitelist);
 
         processSiteSpec(0, sitelist);
-
-//        for (index in sitelist)
-//            {
-//            processSiteSpec(index, sitelist);
-//            }
-         } // processSiteList()
+        } // processSiteList()
 
     function processSiteSpec(index, sitelist)
         {
@@ -111,9 +102,6 @@
         // stop the process at the end
         if (index >= sitelist.length)
             {
-            // finish the close tags for the document
-//            document.getElementById('kml-output').value +=
-//                        '\n</Document>\n</kml>\n';
             return;
             }
 
