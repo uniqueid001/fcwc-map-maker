@@ -248,7 +248,14 @@
         FCWC Map Creator
     </h2>
 
-    <i>Instructions for use:  Update the year in the heading template.  Replace the contents of the &lt;textarea&gt; with the new address data.  Adjust the comments for the range of the site list to process. Copy the KML heading to the destination file.  Click the button labeled "Geocode", and copy the produced section of KML to the destination file.  Repeat for each section of the site list.  Finally, import the complete KML to a new Google Maps.
+    <i>Instructions for use:
+        1. Copy the KML heading to the destination file.
+        2. Replace the contents of the &lt;textarea&gt; with the new address data.
+        3. Click the button labeled "Geocode"
+        4. Copy the produced section of KML to the destination file.
+        5. Repeat for each section of the site list.
+        6. Copy the KML footer to the destination file.
+        7. Finally, import the complete KML to a new Google Maps.
     </i>
 
     <form action="javascript:processSiteList();">
@@ -267,6 +274,7 @@ W | 35 | 586 Another Site
         <textarea id="kml-output" style="width:100%;" rows="15">
         </textarea>
         <!--
+Sample output for reference:
 &lt;?xml version="1.0" encoding="UTF-8"?&gt;
 &lt;kml xmlns="http://www.opengis.net/kml/2.2"&gt;
 &lt;Document&gt;
