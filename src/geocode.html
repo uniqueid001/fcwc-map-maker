@@ -212,7 +212,6 @@
                 });
         } // createMarker()
 
-    //$(document).ready( initialize() );
     </script>
 
     <script type="application/javascript">
@@ -224,10 +223,12 @@
         var heading = $heading.val().replace(/-YEAR-/g, year);
         $heading.val( heading );
         });
+
+    $(document).ready( initialize );
     </script>
 </head>
 
-<body onload="initialize()">
+<body>
 
     <h2 style="text-align:center">
         FCWC Map Creator
